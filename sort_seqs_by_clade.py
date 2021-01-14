@@ -42,10 +42,21 @@ def retrieve_clade_seqs(topology_newick_file,
     ref_seq_list = []
     for i in open(reference_seq_names_file):
         ref_seq_list.append(i.strip().split(',')[0])
+    print('\nReference sequences:')
+    for x in ref_seq_list:
+        print(x)
+    print()
 
     # Check that there are at least three reference sequences defined.
     assert len(ref_seq_list) >= 3, """Less than three reference sequences are
     named in the file %s.""" % reference_seq_names_file
+
+    # Check that all the reference sequences are all in the tree topology.
+    all_leaf_names = [x.name for x in t2.get_leaves()]
+    for ref_seq_name in ref_seq_list:
+        assert ref_seq_name in all_leaf_names, """Reference sequence %s was not
+        found among the sequences represented in the tree %s.""" % \
+        (ref_seq_name, topology_newick_file)
 
     # Initiate dict to store lists of seq names by ref seq name.
     seq_names_by_ref_seq_name = {}
@@ -80,6 +91,7 @@ def retrieve_clade_seqs(topology_newick_file,
                 if node.name == other_ref_seq_node_name:
                     other_ref_seq_node = node
                     break
+            assert other_ref_seq_node is not None
 
             # Root on the other reference sequence node.
             t2.set_outgroup(other_ref_seq_node)
@@ -125,6 +137,14 @@ def retrieve_clade_seqs(topology_newick_file,
         # Add list of leaf names from this clade to the dict.
         seq_names_by_ref_seq_name[ts] = [x.name for x in \
                                          node_w_most_leaves.get_leaves()]
+
+    # Print number of sequences in each clade.
+    print('\nNumber of sequences in each clade:')
+    sorted_keys = sorted(seq_names_by_ref_seq_name.keys(),
+                         key=lambda x: len(seq_names_by_ref_seq_name[x]),
+                         reverse=True)
+    for key in sorted_keys:
+        print(key + ':\t' + str(len(seq_names_by_ref_seq_name[key])))
 
     # Parse input FASTA file.
     all_seqs = list(SeqIO.parse(input_fasta_file, 'fasta'))
